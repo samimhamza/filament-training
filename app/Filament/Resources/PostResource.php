@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PostResource\Pages;
 use App\Filament\Resources\PostResource\RelationManagers;
 use App\Filament\Resources\PostResource\RelationManagers\AuthorsRelationManager;
+use App\Filament\Resources\PostResource\RelationManagers\CommentsRelationManager;
 use App\Models\Category;
 use App\Models\Post;
 use Filament\Forms;
@@ -15,6 +16,8 @@ use Filament\Forms\Components\Group;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -24,6 +27,8 @@ use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -38,36 +43,59 @@ class PostResource extends Resource
     {
         return $form
             ->schema([
-                Section::make('Create a Post')->schema([
-                    TextInput::make('title')->rules(['required'])->required(),
-                    TextInput::make('slug')->required(),
-                    Select::make('category_id')
-                        ->label('Category')
-                        ->relationship('category', 'name')
-                        ->searchable()
-                        ->required(),
-                    ColorPicker::make('color')->required(),
-                    MarkdownEditor::make('content')->columnSpanFull(),
-                ])->columnSpan(2)->columns(2),
-
-                Group::make()->schema([
-
-                    Section::make('Image')->schema([
+                Tabs::make('Create New Post')->tabs([
+                    Tab::make('Post Data')
+                        ->icon('')
+                        ->schema([
+                            TextInput::make('title')->rules(['required'])->required(),
+                            TextInput::make('slug')->required(),
+                            Select::make('category_id')
+                                ->label('Category')
+                                ->relationship('category', 'name')
+                                ->preload()
+                                ->searchable()
+                                ->required(),
+                            ColorPicker::make('color')->required(),
+                        ]),
+                    Tab::make('Content')->schema([
+                        MarkdownEditor::make('content')->columnSpanFull(),
+                    ]),
+                    Tab::make('Meta')->schema([
                         FileUpload::make('thumbnail')->disk('public')->directory('thumbnails')->columnSpanFull(),
-                    ])->columnSpan(1)->collapsible(),
-
-                    Section::make('Meta')->schema([
                         TagsInput::make('tags')->required(),
                         Checkbox::make('published'),
                     ]),
+                ])->columnSpanFull(),
+                // Section::make('Create a Post')->schema([
+                //     TextInput::make('title')->rules(['required'])->required(),
+                //     TextInput::make('slug')->required(),
+                //     Select::make('category_id')
+                //         ->label('Category')
+                //         ->relationship('category', 'name')
+                //         ->searchable()
+                //         ->required(),
+                //     ColorPicker::make('color')->required(),
+                //     MarkdownEditor::make('content')->columnSpanFull(),
+                // ])->columnSpan(2)->columns(2),
 
-                    // Section::make('Authors')->schema([
-                    //     Select::make('authors')
-                    //         ->multiple()
-                    //         ->relationship('authors', 'name'),
+                // Group::make()->schema([
 
-                    // ]),
-                ]),
+                //     Section::make('Image')->schema([
+                //         FileUpload::make('thumbnail')->disk('public')->directory('thumbnails')->columnSpanFull(),
+                //     ])->columnSpan(1)->collapsible(),
+
+                //     Section::make('Meta')->schema([
+                //         TagsInput::make('tags')->required(),
+                //         Checkbox::make('published'),
+                //     ]),
+
+                //     // Section::make('Authors')->schema([
+                //     //     Select::make('authors')
+                //     //         ->multiple()
+                //     //         ->relationship('authors', 'name'),
+
+                //     // ]),
+                // ]),
             ])->columns(3);
     }
 
@@ -105,7 +133,15 @@ class PostResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Filter::make('Published Posts')->query(function (Builder $query): Builder {
+                    return $query->where('published', true);
+                }),
+                SelectFilter::make('category_id')
+                    ->label('Category')
+                    ->relationship('category', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->multiple(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -121,7 +157,8 @@ class PostResource extends Resource
     public static function getRelations(): array
     {
         return [
-            AuthorsRelationManager::class
+            AuthorsRelationManager::class,
+            CommentsRelationManager::class
         ];
     }
 
