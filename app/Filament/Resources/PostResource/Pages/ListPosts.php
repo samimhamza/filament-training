@@ -24,7 +24,7 @@ class ListPosts extends ListRecords
         return [
             'All' => Tab::make(),
             'Published' => Tab::make()->modifyQueryUsing(fn (Builder $query) => $query->where('published', true)),
-            'Draft' => Tab::make()->modifyQueryUsing(fn (Builder $query) => $query->where('published', true)),
+            'Draft' => Tab::make()->modifyQueryUsing(fn (Builder $query) => $query->where('published', false)),
         ];
     }
 }
